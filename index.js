@@ -1,7 +1,8 @@
 const express = require('express');
 const mongo = require('mongodb');
 const path = require('path');
-require("dotenv").config();
+const { queryPlan1, cityConditionMaker } = require('./services/queryMaker');
+require('dotenv').config();
 
 const app = express();
 
@@ -11,54 +12,40 @@ app.set('views', path.join(__dirname, './views'));
 app.locals.siteName = 'INCO Statistics';
 
 const uri = process.env.DB_CONNECTION_STRING;
-const db = process.env.DB_NAME;
-const client = mongo.MongoClient(uri,{useUnifiedTopology: true});
+const dbName = process.env.DB_NAME;
+const client = mongo.MongoClient(uri, { useUnifiedTopology: true });
 
+// const cities = ['London', 'Manchester'];
 
-
-//Total applicant Approved step 1 OR approved step 2 
-//Submitted on September 2019 (they could have registered any time before) so the date may change in the future
-// Step status Approved 
-var fromDate = new Date("2019/11/1");
-const searchObject = {
-  $and: [
-  {$or:
-  [{'stepId' : '5cb8a846fbf8e118bb0e9e55'},{'stepId' : '5cb8a88efbf8e118bb0e9e56'}]
-  },
-  {'status' : 'Approved'},
-  {'updatedAt': {"$gte": fromDate}}
-  ]
-};
-
-
-
-
+const cities = [];
+const pipelineQp1 = queryPlan1(cities);
+console.log(cityConditionMaker(cities));
 
 client.connect((err, db) => {
   if (err) throw err;
-  const dbo = db.db("CYFDevDB");
+  const dbo = db.db(dbName);
 
-  console.log("connected");
+  console.log('connected');
 
-  dbo.collection("applicant_progresses").countDocuments(searchObject, (err, result) => {
-  if (err) throw err;
-  const TotalApplicant1 = result
+  dbo.collection('students').aggregate(pipelineQp1, (err1, result) => {
+    if (err1) throw err1;
 
-app.use('/', (req,res) => {
-  return res.render('layout', {
-    pageTitle : 'Report',
-    template : 'index',
-    TotalApplicant1: TotalApplicant1
+    let qp1London = 0;
+    let qp1Manchester = 0;
+    let qp1Total = 0;
+
+    // result.forEach((count) => applicationCount1 = count);
+    result.forEach((count) => console.log(count));
+
+    app.use('/', (_req, res) => res.render('layout', {
+      pageTitle: 'Report',
+      template: 'index',
+      queryPlan1_London: qp1London,
+      queryPlan1_Manchester: qp1Manchester,
+      queryPlan1_Total: qp1Total,
+    }));
   });
-})
-
 });
-
-
-});  
-
-
-
 
 const PORT = process.env.PORT || 5005;
 app.listen(PORT, () => {
