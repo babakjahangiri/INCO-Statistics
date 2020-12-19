@@ -1,0 +1,27 @@
+.cyf-logo{
+  width: 200px;
+  height: auto;
+}
+
+header{
+  margin-bottom: 50px;
+}
+
+.stats-divider{
+  width: auto;
+  height:10px;
+  background-color: #4F9BD6;
+}
+
+.break-header{
+  white-space: pre-line
+}
+
+.table{
+  width: auto;
+}
+
+.count-digits{
+  color: #49935A;
+  font-size: 30px;
+}
