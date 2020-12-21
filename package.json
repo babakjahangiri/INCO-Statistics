@@ -26,5 +26,5 @@
     "dev": "nodemon index.js"
   },
   "author": "Babak Jahangiri",
-  "license": "ISC"
+  "license": "MIT"
 }

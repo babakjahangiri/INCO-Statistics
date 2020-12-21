@@ -1,50 +1,52 @@
 const express = require('express');
 const mongo = require('mongodb');
 const path = require('path');
-const { queryPlan1, cityConditionMaker } = require('./services/queryMaker');
+const { queryPlan1 , queryGetApplicants } = require('./services/queryMaker');
 require('dotenv').config();
 
 const app = express();
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, './views'));
-
+app.use(express.static(path.join(__dirname, './static')));
 app.locals.siteName = 'INCO Statistics';
 
 const uri = process.env.DB_CONNECTION_STRING;
 const dbName = process.env.DB_NAME;
 const client = mongo.MongoClient(uri, { useUnifiedTopology: true });
 
-// const cities = ['London', 'Manchester'];
+let getCountPlan1London;
+let getCountPlan1Manchester;
+let getCountPlan1Total;
 
-const cities = [];
-const pipelineQp1 = queryPlan1(cities);
-console.log(cityConditionMaker(cities));
-
-client.connect((err, db) => {
+client.connect(async (err, db) => {
   if (err) throw err;
   const dbo = db.db(dbName);
 
-  console.log('connected');
+  await dbo
+    .collection('students')
+    .aggregate(queryPlan1(['London']))
+    .forEach((x) => (getCountPlan1London = x.count));
+  await dbo
+    .collection('students')
+    .aggregate(queryPlan1(['Manchester']))
+    .forEach((x) => (getCountPlan1Manchester = x.count));
+  await dbo
+    .collection('students')
+    .aggregate(queryPlan1(['London', 'Manchester']))
+    .forEach((x) => (getCountPlan1Total = x.count));
 
-  dbo.collection('students').aggregate(pipelineQp1, (err1, result) => {
-    if (err1) throw err1;
+    //  console.log(getCountPlan1London);
+    // console.log(getCountPlan1Manchester);
+    // console.log(getCountPlan1Total);
 
-    let qp1London = 0;
-    let qp1Manchester = 0;
-    let qp1Total = 0;
-
-    // result.forEach((count) => applicationCount1 = count);
-    result.forEach((count) => console.log(count));
-
-    app.use('/', (_req, res) => res.render('layout', {
-      pageTitle: 'Report',
-      template: 'index',
-      queryPlan1_London: qp1London,
-      queryPlan1_Manchester: qp1Manchester,
-      queryPlan1_Total: qp1Total,
-    }));
-  });
+  app.use('/', (_req, res) => res.render('layout', {
+    pageTitle: 'Report',
+    template: 'index',
+    stats1_London: getCountPlan1London,
+    stats1_Manchester: getCountPlan1Manchester,
+    stats1_Total: getCountPlan1Total,
+  }));
 });
 
 const PORT = process.env.PORT || 5005;
